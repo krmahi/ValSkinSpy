@@ -9,8 +9,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 url = f"https://127.0.0.1:{val[2]}/entitlements/v1/token"
 
-print("port:", val[2])
-
 encoded = base64.b64encode(f"riot:{val[3]}".encode())
  
 payload = ""    
@@ -20,8 +18,6 @@ headers = {
     # "Authorization": "Basic cmlvdDpNUlBoc3cxTlN1UFJEQnpBYmNxNm1nCg=="
     "Authorization": "Basic" + " " + str(encoded)[2:-1]
 }
-
-print("headers:", headers)
 
 response = requests.get(url,data=payload, headers=headers, verify=False)
 
