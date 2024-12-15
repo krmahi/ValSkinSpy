@@ -5,6 +5,7 @@ import base64
 import prettytable
 
 urlArray = []
+nameArray = []
 
 # get tokens
 def getTokens():
@@ -66,7 +67,7 @@ def getSkins(access_token, entitlements_token):
 
         response1_json = response1.json()
         SkinName_token = response1_json.get("data")
-        Skin_token = SkinName_token.get("displayName")  # Skin name
+        nameArray.append(SkinName_token.get("displayName"))  # Skin name
         urlArray.append(SkinName_token.get("displayIcon"))  # Skin image URL
         
         #Displaying Skin Name, Icon, and Cost
@@ -100,10 +101,11 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("hello"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "red"),
+                            # border=ft.border.all(1, "red"),
                             # pedding=0.5,
                             expand=True,
                         ),
+                        ft.Text(nameArray[0],VALORANT),
                     ],
                     
                     expand=True,
@@ -117,10 +119,11 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("skin 2"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "red"),
+                            # border=ft.border.all(1, "red"),
                             # bgcolor="blue",
                             expand=True,
-                        )
+                        ),
+                        ft.Text(nameArray[1]),
                     ],
                     expand=True,
                 ),
@@ -138,10 +141,11 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("skin 3"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "red"),
+                            # border=ft.border.all(1, "red"),
                             # bgcolor="green",
                             expand=True,
-                        )
+                        ),
+                        ft.Text(nameArray[2]),
                     ],
                     expand=True,
                 ),
@@ -155,10 +159,11 @@ def main(page: ft.Page):
 
                             # content=ft.Text("skin 4"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "red"),
+                            # border=ft.border.all(1, "red"),
                             # bgcolor="yellow",
                             expand=True,
-                        )
+                        ),
+                        ft.Text(nameArray[3]),
                     ],
                     expand=True,
                 ),
