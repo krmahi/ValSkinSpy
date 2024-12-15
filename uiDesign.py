@@ -69,10 +69,6 @@ def getSkins(access_token, entitlements_token):
         Skin_token = SkinName_token.get("displayName")  # Skin name
         urlArray.append(SkinName_token.get("displayIcon"))  # Skin image URL
         
-
-       
-
-
         #Displaying Skin Name, Icon, and Cost
         # t.add_row([list(S_token[i]['Cost'].values())[0], Skin_token, Icon_token])
 
@@ -84,6 +80,7 @@ def getSkins(access_token, entitlements_token):
 # Ui Design
 
 def main(page: ft.Page):
+    page.title = "Valorant Skin Store"
     # Get Tokens
     access_token, entitlements_token = getTokens()
 
@@ -103,7 +100,8 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("hello"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            border=ft.border.all(1, "red"),
+                            # pedding=0.5,
                             expand=True,
                         ),
                     ],
@@ -119,7 +117,7 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("skin 2"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            border=ft.border.all(1, "red"),
                             # bgcolor="blue",
                             expand=True,
                         )
@@ -140,7 +138,7 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("skin 3"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            border=ft.border.all(1, "red"),
                             # bgcolor="green",
                             expand=True,
                         )
@@ -157,7 +155,7 @@ def main(page: ft.Page):
 
                             # content=ft.Text("skin 4"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            border=ft.border.all(1, "red"),
                             # bgcolor="yellow",
                             expand=True,
                         )
