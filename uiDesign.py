@@ -6,7 +6,13 @@ import prettytable
 
 urlArray = []
 nameArray = []
+n = 19
 
+costarray = []
+cs = str(costarray)
+
+s = str(n)
+ 
 # get tokens
 def getTokens():
     # Reading file 
@@ -59,7 +65,6 @@ def getSkins(access_token, entitlements_token):
     SkinId_token =  SkinsPanelLayout_token.get("SingleItemOffers")
     S_token = SkinsPanelLayout_token.get("SingleItemStoreOffers")
     
-
     #Getting skin's Names, Id and Cost
     for i in range(0,4):
         url2 = "https://valorant-api.com/v1/weapons/skinlevels/"+SkinId_token[i]
@@ -75,19 +80,39 @@ def getSkins(access_token, entitlements_token):
 
     # print(t)
 
-
-
-
 # Ui Design
 
 def main(page: ft.Page):
     page.title = "Valorant Skin Store"
+
+    page.window_full_screen = False
+    page.window_maximizable = True
+    page.window_maximizable = True
+
     # Get Tokens
     access_token, entitlements_token = getTokens()
 
     # Get Skin information
     getSkins(access_token, entitlements_token)
     print(urlArray)
+
+
+    # Keyboard event handler
+    def on_keyboard_event(event: ft.KeyboardEvent):
+        if event.key == "F":
+            page.window_full_screen = True
+            page.update()
+
+        elif event.key == "M":
+            page.window_minimized = True 
+            page.update()
+            
+        elif event.key == "Escape":
+            page.window_close()  
+
+    page.on_keyboard_event = on_keyboard_event
+
+    # page.on_keyboard_event = on_keyboard_event
 
     page.add(
         ft.Row(
@@ -105,7 +130,25 @@ def main(page: ft.Page):
                             # pedding=0.5,
                             expand=True,
                         ),
-                        ft.Text(nameArray[0],VALORANT),
+                            ft.Row(
+                                [
+                                    ft.Column(
+                                        [
+                                            ft.Text(nameArray[0],font_family="VALORANT", size=18),
+                                            # ft.Text(s,font_family="VALORANT", size=18),
+                                        ]
+                                    ),
+                            
+                                    ft.Column(
+                                        [
+                                            ft.Text(cs[0],font_family="VALORANT", size=18),
+                                        ]
+                                    )
+                                ],
+                                # expand=True,
+                            )
+                       
+                        
                     ],
                     
                     expand=True,
@@ -123,7 +166,7 @@ def main(page: ft.Page):
                             # bgcolor="blue",
                             expand=True,
                         ),
-                        ft.Text(nameArray[1]),
+                        ft.Text(nameArray[1],font_family="VALORANT", size=18),
                     ],
                     expand=True,
                 ),
@@ -145,7 +188,7 @@ def main(page: ft.Page):
                             # bgcolor="green",
                             expand=True,
                         ),
-                        ft.Text(nameArray[2]),
+                        ft.Text(nameArray[2],font_family="VALORANT", size=18),
                     ],
                     expand=True,
                 ),
@@ -163,7 +206,7 @@ def main(page: ft.Page):
                             # bgcolor="yellow",
                             expand=True,
                         ),
-                        ft.Text(nameArray[3]),
+                        ft.Text(nameArray[3],font_family="VALORANT", size=18),
                     ],
                     expand=True,
                 ),
@@ -171,9 +214,6 @@ def main(page: ft.Page):
             expand=True,
         ),
     )
-
-
-
 
 
 ft.app(main)

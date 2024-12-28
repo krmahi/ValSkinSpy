@@ -5,6 +5,7 @@ import base64
 import prettytable
 
 urlArray = []
+nameArray = []
 
 # get tokens
 def getTokens():
@@ -66,13 +67,9 @@ def getSkins(access_token, entitlements_token):
 
         response1_json = response1.json()
         SkinName_token = response1_json.get("data")
-        Skin_token = SkinName_token.get("displayName")  # Skin name
+        nameArray.append(SkinName_token.get("displayName"))  # Skin name
         urlArray.append(SkinName_token.get("displayIcon"))  # Skin image URL
         
-
-       
-
-
         #Displaying Skin Name, Icon, and Cost
         # t.add_row([list(S_token[i]['Cost'].values())[0], Skin_token, Icon_token])
 
@@ -84,12 +81,36 @@ def getSkins(access_token, entitlements_token):
 # Ui Design
 
 def main(page: ft.Page):
+    page.title = "Valorant Skin Store"
+
+    page.window_full_screen = False
+    page.window_maximizable = True
+    page.window_maximizable = True
+
     # Get Tokens
     access_token, entitlements_token = getTokens()
 
     # Get Skin information
     getSkins(access_token, entitlements_token)
     print(urlArray)
+
+
+    # Keyboard event handler
+    def on_keyboard_event(event: ft.KeyboardEvent):
+        if event.key == "F":
+            page.window_full_screen = True
+            page.update()
+
+        elif event.key == "M":
+            page.window_minimized = True 
+            page.update()
+            
+        elif event.key == "Escape":
+            page.window_close()  
+
+    page.on_keyboard_event = on_keyboard_event
+
+    # page.on_keyboard_event = on_keyboard_event
 
     page.add(
         ft.Row(
@@ -103,9 +124,11 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("hello"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            # border=ft.border.all(1, "red"),
+                            # pedding=0.5,
                             expand=True,
                         ),
+                        ft.Text(nameArray[0], font_family="VALORANT", size=18),
                     ],
                     
                     expand=True,
@@ -119,10 +142,11 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("skin 2"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            # border=ft.border.all(1, "red"),
                             # bgcolor="blue",
                             expand=True,
-                        )
+                        ),
+                        ft.Text(nameArray[1],font_family="VALORANT", size=18),
                     ],
                     expand=True,
                 ),
@@ -140,10 +164,11 @@ def main(page: ft.Page):
                             ),
                             # content=ft.Text("skin 3"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            # border=ft.border.all(1, "red"),
                             # bgcolor="green",
                             expand=True,
-                        )
+                        ),
+                        ft.Text(nameArray[2],font_family="VALORANT", size=18),
                     ],
                     expand=True,
                 ),
@@ -157,10 +182,11 @@ def main(page: ft.Page):
 
                             # content=ft.Text("skin 4"),
                             alignment=ft.alignment.center,
-                            border=ft.border.all(1, "white"),
+                            # border=ft.border.all(1, "red"),
                             # bgcolor="yellow",
                             expand=True,
-                        )
+                        ),
+                        ft.Text(nameArray[3],font_family="VALORANT", size=18),
                     ],
                     expand=True,
                 ),
@@ -168,9 +194,6 @@ def main(page: ft.Page):
             expand=True,
         ),
     )
-
-
-
 
 
 ft.app(main)
