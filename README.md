@@ -21,9 +21,9 @@ Riot client does not even to be running in the background, you just have to be s
 ![Error loading image, check manually in images folder](./images/ValSkinSpy.png)
 
 ## Future updates
-- [] Show logged in username.
-- [] Show store time.
-- [] Add manual login.
+- [ ] Show logged in username.
+- [ ] Show store time.
+- [ ] Add manual login.
 
 ## Contributions
 Contributions are welcome! Feel free to open an issue or submit a pull request.
