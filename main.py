@@ -2,30 +2,37 @@ import flet as ft
 import requests
 import urllib3
 import base64
+import os
 
 # import prettytable
 import yaml
 
 urlArray = []
 nameArray = []
-n = 19
-
 cost = []
-cs = str(cost)
 
-s = str(n)
-
+localAppData = os.environ.get("localappdata")
 
 # get tokens
 def getTokens():
-    filePath = "C:\\Users\\Em\\AppData\\Local\\Riot Games\\Riot Client\\Data\\RiotGamesPrivateSettings.yaml"
+    # for accessToken
+    filePath = localAppData+"\\Riot Games\\Riot Client\\Data\\RiotGamesPrivateSettings.yaml"
 
     def get_accessToken(filePath):
-        with open(filePath, "r") as f:
-            data = yaml.full_load(f)
-            return data["riot-login"]["persist"]["session"]["cookies"][1]["value"]
-
+        inFile = open(filePath, "r")
+        data = yaml.full_load(inFile)
+        inFile.close()
+        return data["riot-login"]["persist"]["session"]["cookies"][1]["value"]
+        
     ssid_value = get_accessToken(filePath)
+
+    regionPath = localAppData + "\\Riot Games\\Riot Client\\Config\\RiotClientSettings.yaml"
+
+    inFile = open(regionPath, "r")
+    region = yaml.full_load(inFile)
+    inFile.close()
+
+    region = region["install"]["player-affinity"]["product"]["valorant"]["live"]
 
     # ACCESS TOKEN
     url = "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid"
@@ -49,11 +56,26 @@ def getTokens():
     response_json = response.json()
     entitlements_token = response_json.get("entitlements_token")
 
-    return access_token, entitlements_token
+    # puuid
+    url2 = "https://auth.riotgames.com/userinfo"
 
-def getSkins(access_token, entitlements_token):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    # requests.get = requests.get(url2, headers=headers)
+    response = requests.request("get", url2, headers=headers)
+
+    response_json = response.json()
+    # print(response_json)
+    puuid = response_json.get("sub")
+    
+    return access_token, entitlements_token, puuid, region
+
+def getSkins(access_token, entitlements_token, puuid, region):
+   
     # Getting store skin Id's and name
-    url = "https://pd.ap.a.pvp.net/store/v3/storefront/c75e41da-1911-571e-b1fb-0780b254e54f"
+    url = f"https://pd.{region}.a.pvp.net/store/v3/storefront/{puuid}"
 
     # payload = ""
     headers = {
@@ -65,12 +87,12 @@ def getSkins(access_token, entitlements_token):
 
     # sending post request to get skin's infomaration
     response = requests.request("POST", url, data="{}", headers=headers)
-
     response_json = response.json()
 
     SkinsPanelLayout_token = response_json.get("SkinsPanelLayout")
     SkinId_token = SkinsPanelLayout_token.get("SingleItemOffers")
     costs = SkinsPanelLayout_token.get("SingleItemStoreOffers")
+
 
     # Getting skin's Names, Id and Cost
     for i in range(0, 4):
@@ -85,8 +107,6 @@ def getSkins(access_token, entitlements_token):
 
 
 # Ui Design
-
-
 def main(page: ft.Page):
     page.title = "ValSkinSpy"
 
@@ -99,11 +119,10 @@ def main(page: ft.Page):
     page.window_maximizable = True
 
     # Get Tokens
-    access_token, entitlements_token = getTokens()
+    access_token, entitlements_token, puuid, region = getTokens()
 
     # Get Skin information
-    getSkins(access_token, entitlements_token)
-    print(urlArray)
+    getSkins(access_token, entitlements_token, puuid, region)
 
     # Keyboard event handler
     def on_keyboard_event(event: ft.KeyboardEvent):
