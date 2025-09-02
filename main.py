@@ -1,44 +1,37 @@
 import flet as ft
 import requests
-import urllib3
-import base64
 import os
-
-# import prettytable
 import yaml
-
-urlArray = []
-nameArray = []
-cost = []
+import math
 
 localAppData = os.environ.get("localappdata")
 
-# get tokens
+# ---------------------- Token Handling ----------------------
 def getTokens():
-    # for accessToken
-    filePath = localAppData+"\\Riot Games\\Riot Client\\Data\\RiotGamesPrivateSettings.yaml"
+    filePath = localAppData + "\\Riot Games\\Riot Client\\Data\\RiotGamesPrivateSettings.yaml"
 
     def get_accessToken(filePath):
-        inFile = open(filePath, "r")
-        data = yaml.full_load(inFile)
-        inFile.close()
-        return data["riot-login"]["persist"]["session"]["cookies"][1]["value"]
-        
+        with open(filePath, "r") as inFile:
+            data = yaml.full_load(inFile)
+
+        cookies = data["riot-login"]["persist"]["session"]["cookies"]
+        ssid_cookie = next((c["value"] for c in cookies if c.get("name") == "ssid"), None)
+
+        if not ssid_cookie:
+            raise Exception("❌ No ssid cookie found. Please log into Riot Client first.")
+        return ssid_cookie
+
     ssid_value = get_accessToken(filePath)
 
     regionPath = localAppData + "\\Riot Games\\Riot Client\\Config\\RiotClientSettings.yaml"
-
-    inFile = open(regionPath, "r")
-    region = yaml.full_load(inFile)
-    inFile.close()
+    with open(regionPath, "r") as inFile:
+        region = yaml.full_load(inFile)
 
     region = region["install"]["player-affinity"]["product"]["valorant"]["live"]
 
     # ACCESS TOKEN
     url = "https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid"
-
     cookies = {"ssid": ssid_value}
-
     response = requests.get(url, cookies=cookies)
     start = response.url.find("access_token=") + len("access_token=")
     end = response.url.find("&", start)
@@ -46,38 +39,23 @@ def getTokens():
 
     # ENTITLEMENT TOKEN
     url1 = "https://entitlements.auth.riotgames.com/api/token/v1"
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {access_token}",
-    }
-
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {access_token}"}
     response = requests.post(url1, headers=headers)
-    response_json = response.json()
-    entitlements_token = response_json.get("entitlements_token")
+    entitlements_token = response.json().get("entitlements_token")
 
-    # puuid
+    # PUUID
     url2 = "https://auth.riotgames.com/userinfo"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url2, headers=headers)
+    puuid = response.json().get("sub")
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-    }
-
-    # requests.get = requests.get(url2, headers=headers)
-    response = requests.request("get", url2, headers=headers)
-
-    response_json = response.json()
-    # print(response_json)
-    puuid = response_json.get("sub")
-    
     return access_token, entitlements_token, puuid, region
 
-def getSkins(access_token, entitlements_token, puuid, region):
-   
-    # Getting store skin Id's and name
-    url = f"https://pd.{region}.a.pvp.net/store/v3/storefront/{puuid}"
 
-    # payload = ""
+# ---------------------- Store Fetchers ----------------------
+def getStore(access_token, entitlements_token, puuid, region):
+    """Fetch entire store JSON"""
+    url = f"https://pd.{region}.a.pvp.net/store/v3/storefront/{puuid}"
     headers = {
         "X-Riot-ClientPlatform": "ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9",
         "X-Riot-Entitlements-JWT": entitlements_token,
@@ -85,197 +63,288 @@ def getSkins(access_token, entitlements_token, puuid, region):
         "Authorization": f"Bearer {access_token}",
     }
 
-    # sending post request to get skin's infomaration
-    response = requests.request("POST", url, data="{}", headers=headers)
-    response_json = response.json()
-
-    SkinsPanelLayout_token = response_json.get("SkinsPanelLayout")
-    SkinId_token = SkinsPanelLayout_token.get("SingleItemOffers")
-    costs = SkinsPanelLayout_token.get("SingleItemStoreOffers")
+    response = requests.post(url, headers=headers, json={})
+    return response.json()
 
 
-    # Getting skin's Names, Id and Cost
-    for i in range(0, 4):
-        url2 = "https://valorant-api.com/v1/weapons/skinlevels/" + SkinId_token[i]
-        response1 = requests.request("GET", url2, data="", headers=headers)
+def parseDaily(store_json):
+    """Parse daily offers"""
+    panel = store_json.get("SkinsPanelLayout", {})
+    skin_ids = panel.get("SingleItemOffers", [])
+    costs = panel.get("SingleItemStoreOffers", [])
+    remaining = panel.get("SingleItemOffersRemainingDurationInSeconds", 0)
 
-        response1_json = response1.json()
-        SkinName_token = response1_json.get("data")
-        nameArray.append(SkinName_token.get("displayName"))  # Skin name
-        urlArray.append(SkinName_token.get("displayIcon"))  # Skin image URL
-        cost.append(list(costs[i]["Cost"].values())[0])
+    skins = []
+    for i, skin_id in enumerate(skin_ids):
+        try:
+            skin_url = f"https://valorant-api.com/v1/weapons/skinlevels/{skin_id}"
+            res = requests.get(skin_url)
+            skin_info = res.json().get("data", {})
+            skins.append({
+                "name": skin_info.get("displayName", "Unknown"),
+                "icon": skin_info.get("displayIcon"),
+                "price": list(costs[i]["Cost"].values())[0] if i < len(costs) else 0
+            })
+        except Exception:
+            continue
+
+    return skins, remaining
 
 
-# Ui Design
-def main(page: ft.Page):
-    page.title = "ValSkinSpy"
+def parseBundles(store_json):
+    """Parse all available bundles (featured + others)"""
+    bundles = []
 
-    page.fonts = {
-        "VALORANT": "/fonts/VALORANT.ttf"
-    }
+    # 1) Featured bundle
+    if "FeaturedBundle" in store_json:
+        fb = store_json["FeaturedBundle"]
+        bundle_info = fb.get("Bundle", {})
+        bundles.append({
+            "data": bundle_info,
+            "remaining": fb.get("BundleRemainingDurationInSeconds", 0),
+            "items": bundle_info.get("Items", []),
+        })
 
-    page.window_full_screen = False
-    page.window_maximizable = True
-    page.window_maximizable = True
+    # 2) Other bundles
+    for b in store_json.get("Bundles", []):
+        bundles.append({
+            "data": b,
+            "remaining": b.get("BundleRemainingDurationInSeconds", 0),
+            "items": b.get("Items", []),
+        })
 
-    # Get Tokens
-    access_token, entitlements_token, puuid, region = getTokens()
+    parsed = []
+    for b in bundles:
+        bundle_info = b["data"]
+        items = b["items"]
 
-    # Get Skin information
-    getSkins(access_token, entitlements_token, puuid, region)
+        # Resolve bundle name
+        bundle_id = bundle_info.get("DataAssetID")
+        bundle_name = "Bundle"
+        try:
+            res = requests.get(f"https://valorant-api.com/v1/bundles/{bundle_id}")
+            bundle_name = res.json().get("data", {}).get("displayName", "Bundle")
+        except Exception:
+            pass
 
-    # Keyboard event handler
-    def on_keyboard_event(event: ft.KeyboardEvent):
-        if event.key == "F":
-            page.window_full_screen = True
-            page.update()
+        # Total bundle price (discounted if available)
+        total_price = bundle_info.get("TotalDiscountedCost") or bundle_info.get("TotalBaseCost") or {}
+        bundle_price = list(total_price.values())[0] if total_price else 0
 
-        elif event.key == "M":
-            page.window_minimized = True
-            page.update()
+        skins = []
+        for item in items:
+            skin_id = item.get("Item", {}).get("ItemID")
+            price = item.get("BasePrice", 0)
+            try:
+                skin_url = f"https://valorant-api.com/v1/weapons/skinlevels/{skin_id}"
+                res = requests.get(skin_url)
+                skin_data = res.json().get("data", {})
+                skins.append({
+                    "name": skin_data.get("displayName", "Unknown"),
+                    "icon": skin_data.get("displayIcon"),
+                    "price": price
+                })
+            except Exception:
+                continue
 
-        elif event.key == "Escape":
-            page.window_close()
+        parsed.append({
+            "name": bundle_name,
+            "skins": skins,
+            "bundle_price": bundle_price,
+            "remaining": b["remaining"]
+        })
 
-    page.on_keyboard_event = on_keyboard_event
+    return parsed
 
-    # page.on_keyboard_event = on_keyboard_event
 
-    page.add(
-        ft.Row(
+# ---------------------- Helpers ----------------------
+def format_time(seconds):
+    """Convert seconds → HH:MM:SS"""
+    hours = math.floor(seconds / 3600)
+    minutes = math.floor((seconds % 3600) / 60)
+    sec = seconds % 60
+    return f"{hours:02}:{minutes:02}:{sec:02}"
+
+def make_wallet_bar(wallet_data):
+    # Extract balances
+    vp = wallet_data.get("Balances", {}).get("85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741", 0)   # Valorant Points UUID
+    rp = wallet_data.get("Balances", {}).get("e59aa87c-4cbf-517a-5983-6e81511be9b7", 0)   # Radianite Points UUID
+
+    return ft.Container(
+        bgcolor="#0f1923",  # Dark navy/grey background
+        padding=15,
+        border_radius=15,
+        margin=ft.margin.only(bottom=20),
+        content=ft.Row(
             [
-                ft.Column(
-                    [
-                        ft.Column(
-                            [
-                                ft.Text(
-                                    f"Cost: {cost[0]}", size=18, font_family="VALORANT"
-                                ),
-                            ]
-                        ),
-                        ft.Container(
-                            content=ft.Image(src=urlArray[0], fit=ft.ImageFit.CONTAIN),
-                            alignment=ft.alignment.center,
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Column(
-                                    [
-                                        ft.Text(
-                                            nameArray[0],
-                                            font_family="VALORANT",
-                                            size=18,
-                                        ),
-                                    ]
-                                ),
-                            ],
-                        ),
-                    ],
-                    expand=True,
+                ft.Text(
+                    "Your Wallet",
+                    size=22,
+                    weight="bold",
+                    color="#f1f5f9",
                 ),
-                ft.VerticalDivider(color="red"),
-                ft.Column(
+                ft.Container(expand=True),
+
+                # VP balance
+                ft.Row(
                     [
-                        ft.Column(
-                            [
-                                ft.Text(
-                                    f"Cost: {cost[1]}", size=18, font_family="VALORANT"
-                                ),
-                            ]
+                        ft.Image(
+                            src="https://justvalorant.github.io/RP-to-VP-Calculator/vp.png", 
+                            width=24,
+                            height=24,
+                            border_radius=15
                         ),
-                        ft.Container(
-                            content=ft.Image(src=urlArray[1], fit=ft.ImageFit.CONTAIN),
-                            alignment=ft.alignment.center,
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Column(
-                                    [
-                                        ft.Text(
-                                            nameArray[1],
-                                            font_family="VALORANT",
-                                            size=18,
-                                        ),
-                                    ]
-                                ),
-                            ],
-                        ),
+                        ft.Text(
+                            f"{vp:,}",
+                            size=18,
+                            weight="bold",
+                            color="#fbbf24",  # gold for VP
+                        )
                     ],
-                    expand=True,
+                    spacing=8,
+                ),
+
+                ft.Container(width=10),  # spacing
+
+                # RP balance
+                ft.Row(
+                    [
+                        ft.Image(
+                            src="https://justvalorant.github.io/RP-to-VP-Calculator/rp.png", 
+                            width=24,
+                            height=24,
+                            border_radius=15
+                            
+                        ),
+                        ft.Text(
+                            f"{rp:,}",
+                            size=18,
+                            weight="bold",
+                            color="#38bdf8",  # cyan for RP
+                        )
+                    ],
+                    spacing=8,
                 ),
             ],
-            expand=True,
-        ),
-        ft.Divider(color="red"),
-        ft.Row(
-            [
-                ft.Column(
-                    [
-                        ft.Column(
-                            [
-                                ft.Text(
-                                    f"Cost: {cost[2]}", size=18, font_family="VALORANT"
-                                ),
-                            ]
-                        ),
-                        ft.Container(
-                            content=ft.Image(src=urlArray[2], fit=ft.ImageFit.CONTAIN),
-                            alignment=ft.alignment.center,
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Column(
-                                    [
-                                        ft.Text(
-                                            nameArray[2],
-                                            font_family="VALORANT",
-                                            size=18,
-                                        ),
-                                    ]
-                                ),
-                            ],
-                        ),
-                    ],
-                    expand=True,
-                ),
-                ft.VerticalDivider(color="red"),
-                ft.Column(
-                    [
-                        ft.Column(
-                            [
-                                ft.Text(
-                                    f"Cost: {cost[3]}", size=18, font_family="VALORANT"
-                                ),
-                            ]
-                        ),
-                        ft.Container(
-                            content=ft.Image(src=urlArray[3], fit=ft.ImageFit.CONTAIN),
-                            alignment=ft.alignment.center,
-                            expand=True,
-                        ),
-                        ft.Row(
-                            [
-                                ft.Column(
-                                    [
-                                        ft.Text(
-                                            nameArray[3],
-                                            font_family="VALORANT",
-                                            size=18,
-                                        ),
-                                    ]
-                                ),
-                            ],
-                        ),
-                    ],
-                    expand=True,
-                ),
-            ],
-            expand=True,
+            alignment="spaceBetween",
         ),
     )
 
+def make_store_section(title, skins, remaining, extra_text=None):
+    # Store background: dark grey, Valorant red accents
+    return ft.Container(
+        bgcolor="#0f1923",  # Dark navy/grey background
+        padding=20,
+        border_radius=15,
+        content=ft.Column(
+            [
+                # Header row
+                ft.Row(
+                    [
+                        ft.Text(
+                            title,
+                            size=24,
+                            weight="bold",
+                            color="#ff4655",  # Valorant red
+                        ),
+                        ft.Container(expand=True),
+                        ft.Text(
+                            format_time(remaining),
+                            size=16,
+                            color="#ffffff",
+                        ),
+                    ],
+                    alignment="spaceBetween",
+                ),
+
+                # Skins grid
+                ft.Row(
+                    [
+                        ft.Container(
+                            bgcolor="#1f2a36",  # Slightly lighter dark
+                            border_radius=10,
+                            padding=10,
+                            width=200,
+                            content=ft.Column(
+                                [
+                                    ft.Image(skin["icon"], height=120, fit=ft.ImageFit.CONTAIN),
+                                    ft.Text(
+                                        skin["name"],
+                                        size=16,
+                                        color="#ffffff",
+                                        weight="bold",
+                                        text_align="center",
+                                    ),
+                                    ft.Text(
+                                        f"{skin['price']:,} VP",
+                                        size=14,
+                                        color="#ffd700",  # Gold for VP
+                                        text_align="center",
+                                    ),
+                                ],
+                                horizontal_alignment="center",
+                                spacing=5,
+                            ),
+                        )
+                        for skin in skins if skin["icon"] # remove non icon elements
+                    ],
+                    wrap=True,
+                    spacing=15,
+                ),
+
+                # Extra info (bundle price, etc.)
+                ft.Text(
+                    extra_text or "",
+                    size=18,
+                    weight="bold",
+                    color="#50fa7b",  # Neon green (Valorant "discount" vibe)
+                ),
+            ],
+            spacing=15,
+        ),
+    )
+
+
+
+# ---------------------- Main App ----------------------
+def main(page: ft.Page):
+    page.title = "ValStore"
+    page.scroll = "auto"
+
+    # ---- Fetch wallet data (replace with your API call) ----
+    wallet_data = {
+        "Balances": {
+            "85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741": 2306,  # VP
+            "e59aa87c-4cbf-517a-5983-6e81511be9b7": 150,   # RP
+        }
+    }
+
+    page.add(make_wallet_bar(wallet_data))
+
+    try:
+        access_token, entitlements_token, puuid, region = getTokens()
+        store_json = getStore(access_token, entitlements_token, puuid, region)
+
+        daily_skins, daily_remaining = parseDaily(store_json)
+        bundles = parseBundles(store_json)
+        for bundle in bundles:
+            page.add(
+                make_store_section(
+                    bundle["name"],
+                    bundle["skins"],
+                    bundle["remaining"],
+                    extra_text=f"Total Bundle Price: {bundle['bundle_price']:,} VP"
+                ),
+                ft.Divider(height=20, color="transparent"),
+            )
+
+    except Exception as e:
+        page.add(ft.Text(f"❌ Error: {e}", color="red", size=20))
+        return
+
+    # Daily offers
+    page.add(
+        make_store_section("Daily Offers", daily_skins, daily_remaining)
+    )
 
 ft.app(main, assets_dir="assets")
