@@ -1,4 +1,4 @@
-# ValSkinSpy - Valorant Daily Store Checker
+# ValStore - Valorant Daily Store Checker
 
 A beautifully designed GUI application that allows users to view their daily Valorant store skins without opening the game. Users simply need to be signed in to the Riot Client to use this app.
 
@@ -14,8 +14,8 @@ A beautifully designed GUI application that allows users to view their daily Val
 Riot client does not even to be running in the background, you just have to be signed into it by ticking **Keep signed in** option during login.
 
 ## Installation
-1. Download the latest release from the [Releases](https://github.com/BlueFlareJinx/ValSkinSpy/releases/download/v1.0.1/ValSkinSpy.exe) page.
-2. Double-click on **ValSkinSpy.exe** file. That's it.
+1. Download the latest release from the Releases
+2. Double-click on **ValStore.exe** file. That's it.
 
 ## Screenshots
 ![Error loading image, check manually in images folder](./images/ValSkinSpy.png)
