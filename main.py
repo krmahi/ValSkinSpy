@@ -344,7 +344,7 @@ def main(page: ft.Page):
 
     # Daily offers
     page.add(
-        make_store_section("Daily Offers", daily_skins, daily_remaining)
+        make_store_section("Daily Store", daily_skins, daily_remaining)
     )
 
 ft.app(main, assets_dir="assets")
