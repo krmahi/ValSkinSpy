@@ -26,13 +26,12 @@ Riot client does not even to be running in the background, you just have to be s
 - `flet pack main.py -n valStore -i "icon file" --add-data "assets;assets" --product-name "ValStore" --file-description "Valorant Store Viewer" --product-version "version name" --file-version "version name"`
 - before running input parameters : icon file, version name
 
-## Contributions
-Contributions are welcome! Feel free to open an issue or submit a pull request.
-
----
-
 Feel free to star the repository if you find this application useful! 😊
 
 ---
 
-**Author:** [BlueFlareJinx](https://github.com/BlueFlareJinx)
+**Author:** [BlueFlareJinx](https://github.com/BlueFlareJinx) <br> <br>
+**Contributor:** <br>
+[<img src="https://avatars.githubusercontent.com/u/114367518?v=4" width="60"/>](https://github.com/krmahi)
+
+
