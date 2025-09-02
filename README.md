@@ -3,7 +3,7 @@
 A beautifully designed GUI application that allows users to view their daily Valorant store skins without opening the game. Users simply need to be signed in to the Riot Client to use this app.
 
 ## Features
-- Displays daily Valorant store skins.
+- Displays daily Valorant store skins and bundles.
 - Eliminates the need to open the game to check the store.
 - Lightweight and easy to use.
 - No installation needed.
@@ -14,16 +14,17 @@ A beautifully designed GUI application that allows users to view their daily Val
 Riot client does not even to be running in the background, you just have to be signed into it by ticking **Keep signed in** option during login.
 
 ## Installation
-1. Download the latest release from the Releases
-2. Double-click on **ValStore.exe** file. That's it.
+1. Download the latest release from the [Releases](https://github.com/krmahi/ValStore/releases)
+2. Double-click on **valStore.exe** file. That's it.
 
-## Screenshots
-![Error loading image, check manually in images folder](./images/ValSkinSpy.png)
+## Preview
+![](./images/valStore.png)
 
-## Future updates
-- [ ] Show logged in username.
-- [ ] Show store time.
-- [ ] Add manual login.
+
+## Building
+- install required Dependencies
+- `flet pack main.py -n valStore -i "icon file" --add-data "assets;assets" --product-name "ValStore" --file-description "Valorant Store Viewer" --product-version "version name" --file-version "version name"`
+- before running input parameters : icon file, version name
 
 ## Contributions
 Contributions are welcome! Feel free to open an issue or submit a pull request.
