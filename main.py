@@ -163,7 +163,7 @@ def parseBundles(store_json):
                 pass
 
             if not skin_icon:
-                skin_icon = "assets/images/icon_windows.png"
+                skin_icon = "images/icon_windows.png"
 
             skins.append({
                 "name": skin_name,
@@ -206,6 +206,9 @@ def parseNightMarket(store_json):
 
         base_price = list(offer["Offer"]["Cost"].values())[0]
         discounted_price = list(offer["DiscountCosts"].values())[0]
+
+        if not skin_icon:
+                skin_icon = "images/icon_windows.png"
 
         offers.append({
             "name": skin_name,
